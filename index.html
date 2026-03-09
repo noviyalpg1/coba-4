@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Petualangan Fikih</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000; overflow: hidden;
+            font-family: 'Fredoka One', cursive, sans-serif;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: relative; width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background-color: #5c94fc; overflow: hidden;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* --- UI OVERLAYS --- */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(92, 148, 252, 0.95); z-index: 100;
+        }
+        .hidden { display: none !important; }
+
+        /* Layar Login & Menu Utama dengan Background */
+        #login-menu, #main-menu {
+            background-image: url('https://imgur.com/Xo82qhB.png');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover; /* Diubah ke cover agar full memenuhi layar */
+            background-color: #5c94fc; 
+        }
+
+        /* Layar Login */
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px; border-radius: 20px; text-align: center;
+            width: 80%; max-width: 400px;
+            border: 5px solid #fbd000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+        .login-box h2 { color: #e52521; margin-top: 0; font-size: 28px; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 14px; color: #333; margin-bottom: 5px; font-family: sans-serif; font-weight: bold;}
+        .input-field {
+            width: 100%; padding: 12px; border: 3px solid #ccc; border-radius: 10px;
+            font-size: 16px; font-family: sans-serif; box-sizing: border-box; outline: none;
+        }
+        .input-field:focus { border-color: #4caf50; }
+        #login-error { color: #e52521; font-family: sans-serif; font-size: 14px; margin-bottom: 15px; display: none; font-weight: bold;}
+
+        /* Menu Utama */
+        #title-img {
+            max-width: 80%; height: auto; 
+            margin-top: 10vh; /* Diubah agar elemen di bawahnya naik ke atas */
+            margin-bottom: 0px; /* Jarak dengan teks Halo diperkecil */
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3));
+            animation: float 3s ease-in-out infinite;
+            position: relative; z-index: 1;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        /* Tulisan Halo yang Bercahaya dan Naik Ke Atas */
+        .small-title {
+            font-size: 32px; 
+            color: #FFFF00; /* Kuning Terang */
+            /* Outline hitam pekat + Efek Cahaya (Glow) putih dan kuning agar menonjol dari background */
+            text-shadow: 
+                2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
+                0 0 15px rgba(255, 255, 255, 1), 
+                0 0 30px rgba(255, 215, 0, 0.9),
+                0 0 50px rgba(255, 215, 0, 0.6); 
+            margin-top: -10px; /* Tarik teks ke atas agar lebih dekat dengan judul */
+            margin-bottom: 25px; letter-spacing: 2px; text-align: center;
+            position: relative; z-index: 2;
+        }
+        
+        /* Grup Tombol dinaikkan ke atas */
+        .menu-buttons { 
+            display: flex; flex-direction: column; gap: 20px; 
+            position: relative; z-index: 2;
+            transform: translateY(-10px); /* Menarik tombol lebih naik */
+        }
+
+        .btn {
+            background: #e52521; color: white; border: 4px solid #fff;
+            padding: 15px 40px; font-size: 24px; font-family: 'Fredoka One', cursive;
+            border-radius: 30px; cursor: pointer; 
+            /* Tambahan efek Glow putih agar tombol menyala */
+            box-shadow: 0 5px 0 #8a0000, 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.4);
+            transition: transform 0.1s, box-shadow 0.1s; width: 100%; box-sizing: border-box; text-align: center;
+        }
+        .btn:active { 
+            transform: translateY(5px); 
+            box-shadow: 0 0 0 #8a0000, 0 0 10px rgba(255, 255, 255, 0.5); 
+        }
+        
+        .btn-blue { 
+            background: #2196F3; 
+            /* Glow khusus tombol biru */
+            box-shadow: 0 5px 0 #0b7dda, 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.4); 
+        }
+        .btn-blue:active { 
+            box-shadow: 0 0 0 #0b7dda, 0 0 10px rgba(255, 255, 255, 0.5); 
+        }
+
+        /* Papan Skor Podium */
+        #leaderboard-menu h2 { font-size: 36px; color: #fbd000; text-shadow: 3px 3px 0 #000; margin-bottom: 10px; }
+        .podium-container {
+            display: flex; align-items: flex-end; justify-content: center; gap: 15px;
+            margin-bottom: 30px; height: 250px;
+        }
+        .podium { display: flex; flex-direction: column; align-items: center; width: 90px; }
+        .podium .avatar { font-size: 40px; margin-bottom: -5px; z-index: 2;}
+        .podium .name { 
+            font-weight: bold; color: white; text-align: center; font-size: 16px; 
+            text-shadow: 2px 2px 0 #000; width: 100%; white-space: nowrap; 
+            overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px;
+        }
+        .podium .school { font-size: 11px; color: #e0e0e0; text-align: center; margin-bottom: 5px; text-shadow: 1px 1px 0 #000; font-family: sans-serif; font-weight: bold;}
+        .podium .score { font-size: 22px; color: #fbd000; font-weight: bold; margin-bottom: 5px; text-shadow: 2px 2px 0 #000;}
+        .step {
+            width: 100%; display: flex; justify-content: center; align-items: flex-start; padding-top: 10px;
+            font-size: 36px; font-weight: bold; color: rgba(255,255,255,0.8);
+            border-radius: 10px 10px 0 0; box-shadow: inset 0 -5px 0 rgba(0,0,0,0.2), 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .step-1 { height: 120px; background: linear-gradient(to bottom, #FFD700, #DAA520); }
+        .step-2 { height: 90px; background: linear-gradient(to bottom, #E0E0E0, #9E9E9E); }
+        .step-3 { height: 60px; background: linear-gradient(to bottom, #CD7F32, #8B4513); }
+
+        .lb-list {
+            background: rgba(0,0,0,0.5); border-radius: 15px; padding: 15px; width: 90%; max-width: 400px;
+            max-height: 150px; overflow-y: auto; color: white; font-family: sans-serif; margin-bottom: 20px;
+        }
+        .lb-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.2); }
+        .lb-item:last-child { border-bottom: none; }
+        .lb-rank { font-weight: bold; color: #fbd000; width: 30px;}
+        .lb-name { flex-grow: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+        .lb-pts { font-weight: bold; color: #4caf50; }
+
+        /* HUD & Navigasi */
+        #hud {
+            position: absolute; top: 15px; left: 15px; right: 15px;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            pointer-events: none; z-index: 50;
+        }
+        .stats {
+            background: rgba(0, 0, 0, 0.6); color: white; padding: 10px 20px;
+            border-radius: 15px; font-size: 20px; border: 2px solid #fff; text-shadow: 1px 1px 0 #000; pointer-events: auto;
+        }
+        .top-buttons { display: flex; gap: 10px; pointer-events: auto; }
+        .hud-btn {
+            background: #fbd000; color: #d13a00; border: 3px solid #fff;
+            padding: 10px 15px; font-size: 16px; font-family: inherit;
+            border-radius: 15px; cursor: pointer; box-shadow: 0 4px 0 #c28700;
+        }
+        .hud-btn.active-bgm { background: #4caf50; color: white; border-color: white; box-shadow: 0 4px 0 #2e7d32; }
+        .hud-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        /* Tombol Sentuh & Mouse */
+        #touch-controls {
+            position: absolute; bottom: 30px; left: 0; width: 100%; height: 120px;
+            display: flex; justify-content: space-between; padding: 0 30px;
+            box-sizing: border-box; pointer-events: none; z-index: 50;
+        }
+        .touch-group { display: flex; gap: 8px; align-items: flex-end; pointer-events: auto; }
+        .t-btn {
+            width: 65px; height: 65px; background: rgba(255, 255, 255, 0.5);
+            border: 4px solid rgba(255, 255, 255, 0.9); border-radius: 50%;
+            color: #333; font-size: 13px; font-weight: bold;
+            display: flex; justify-content: center; align-items: center;
+            user-select: none; -webkit-user-select: none; cursor: pointer;
+        }
+        .t-btn:active, .t-btn.active { background: rgba(255, 255, 255, 0.9); transform: scale(0.95); }
+        
+        .t-btn-jump {
+            width: 80px; height: 80px; background: rgba(229, 37, 33, 0.7);
+            border-color: rgba(255, 255, 255, 0.9); color: white; font-size: 15px;
+        }
+        .t-btn-jump:active, .t-btn-jump.active { background: rgba(229, 37, 33, 1); }
+
+        /* Modal Kuis & UI Khusus 3 Level */
+        #quiz-modal { background: rgba(0, 0, 0, 0.8); }
+        .quiz-box {
+            background: #fff; padding: 25px; border-radius: 20px; text-align: center;
+            max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;
+            border: 5px solid #fbd000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-family: sans-serif;
+        }
+        .quiz-box h2 { color: #e52521; margin-top: 0; font-size: 24px; font-family: 'Fredoka One', cursive;}
+        
+        .quiz-options { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .q-btn {
+            background: #4caf50; color: white; border: none; padding: 12px;
+            font-size: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: background 0.2s;
+        }
+        .q-btn:active { background: #388e3c; transform: scale(0.98); }
+
+        .submit-btn {
+            background: #2196F3; color: white; border: none; padding: 12px 20px; font-size: 18px; font-weight: bold;
+            border-radius: 10px; cursor: pointer; margin-top: 15px; width: 100%; box-shadow: 0 4px 0 #0b7dda;
+        }
+        .submit-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        /* Jumble & DnD Styles */
+        .q-area-box {
+            background: #f1f1f1; border: 2px dashed #aaa; padding: 15px; border-radius: 10px;
+            min-height: 60px; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 8px;
+            justify-content: center; align-items: center; font-size: 16px; color: #333; line-height: 1.5;
+        }
+        .word-chip {
+            background: #fff; border: 2px solid #ccc; padding: 8px 12px; border-radius: 8px;
+            cursor: pointer; box-shadow: 0 2px 0 #aaa; user-select: none; font-weight: bold;
+        }
+        .word-chip:active { transform: translateY(2px); box-shadow: none; }
+        
+        .dnd-slot {
+            display: inline-block; min-width: 80px; height: 28px; border-bottom: 3px solid #e52521;
+            margin: 0 5px; text-align: center; color: #e52521; font-weight: bold; cursor: pointer;
+            transition: all 0.3s;
+        }
+        .dnd-opt-chip {
+            background: #fff; border: 2px solid #ccc; padding: 8px 15px; border-radius: 8px;
+            cursor: pointer; box-shadow: 0 2px 0 #aaa; font-weight: bold; color: #333;
+        }
+        .dnd-opt-chip.selected { border-color: #e52521; background: #ffebee; }
+
+        /* Layar Transisi */
+        #message-overlay { background: rgba(0,0,0,0.8); color: white; }
+        #message-text { font-size: 32px; text-align: center; text-shadow: 3px 3px 0 #000; margin-bottom: 30px;}
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Layar Login (Pertama Kali Muncul) -->
+    <div id="login-menu" class="overlay">
+        <div class="login-box">
+            <h2>Masuk Dulu Yuk!</h2>
+            <div id="login-error">Nama dan Sekolah harus diisi!</div>
+            <div class="input-group">
+                <label>Nama Kamu:</label>
+                <input type="text" id="player-name" class="input-field" placeholder="Ketik nama di sini..." autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label>Asal Sekolah:</label>
+                <input type="text" id="player-school" class="input-field" placeholder="Ketik nama sekolah..." autocomplete="off">
+            </div>
+            <button class="btn btn-blue" id="login-submit-btn" style="box-shadow: 0 5px 0 #0b7dda;">Mulai Petualangan</button>
+        </div>
+    </div>
+
+    <!-- Overlay Utama (Menu) -->
+    <div id="main-menu" class="overlay hidden">
+        <img id="title-img" src="https://imgur.com/VmSLsxs.png" alt="Petualangan Fikih Judul">
+        <h1 class="small-title">Halo, <span id="welcome-name">Sobat</span>!</h1>
+        <div class="menu-buttons">
+            <button class="btn" id="start-btn">MAIN SEKARANG</button>
+            <button class="btn btn-blue" id="leaderboard-btn" style="font-size: 20px;">🏆 PAPAN SKOR 🏆</button>
+        </div>
+    </div>
+
+    <!-- Overlay Papan Skor (Podium) -->
+    <div id="leaderboard-menu" class="overlay hidden">
+        <h2>🏆 Papan Skor 🏆</h2>
+        
+        <div class="podium-container">
+            <!-- Juara 2 -->
+            <div class="podium place-2">
+                <div class="avatar">🥈</div>
+                <div class="score" id="score-2">0</div>
+                <div class="name" id="name-2">-</div>
+                <div class="school" id="school-2">-</div>
+                <div class="step step-2">2</div>
+            </div>
+            <!-- Juara 1 -->
+            <div class="podium place-1">
+                <div class="avatar" style="font-size: 55px; margin-bottom: -10px;">🥇</div>
+                <div class="score" id="score-1">0</div>
+                <div class="name" id="name-1">-</div>
+                <div class="school" id="school-1">-</div>
+                <div class="step step-1">1</div>
+            </div>
+            <!-- Juara 3 -->
+            <div class="podium place-3">
+                <div class="avatar">🥉</div>
+                <div class="score" id="score-3">0</div>
+                <div class="name" id="name-3">-</div>
+                <div class="school" id="school-3">-</div>
+                <div class="step step-3">3</div>
+            </div>
+        </div>
+
+        <!-- Daftar Sisa Peringkat -->
+        <div class="lb-list" id="lb-other-list">
+            <!-- Diisi lewat JS -->
+        </div>
+
+        <button class="btn" id="close-lb-btn" style="font-size: 20px; width: auto; box-shadow: 0 5px 0 #8a0000;">Kembali ke Menu</button>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+        <div class="stats">
+            ❤️ <span id="ui-lives">3</span> &nbsp;|&nbsp; 🪙 <span id="ui-score">0</span> &nbsp;|&nbsp; 🚩 Lv <span id="ui-level">1</span>
+        </div>
+        <div class="top-buttons">
+            <button id="bgm-btn" class="hud-btn active-bgm">🎵 BGM: ON</button>
+            <button id="fs-btn" class="hud-btn" style="background:#333; color:#fff;">⛶ Layar Penuh</button>
+            <button id="menu-btn" class="hud-btn">Menu Utama</button>
+        </div>
+    </div>
+
+    <!-- Tombol Sentuh / Mouse -->
+    <div id="touch-controls" class="hidden">
+        <div class="touch-group">
+            <div class="t-btn" id="t-left">Kiri</div>
+            <div class="t-btn" id="t-down" style="height: 55px;">Nunduk</div> 
+            <div class="t-btn" id="t-right">Kanan</div>
+        </div>
+        <div class="touch-group">
+            <div class="t-btn t-btn-jump" id="t-jump">Lompat</div>
+        </div>
+    </div>
+
+    <!-- Kuis Modal Interaktif 3 Level -->
+    <div id="quiz-modal" class="overlay hidden">
+        <div class="quiz-box">
+            <h2>Kuis Level <span id="qz-lvl-text"></span></h2>
+            <p id="quiz-question" style="font-size: 18px; color:#333; margin-bottom: 15px;"></p>
+            
+            <div id="qc-pg" class="hidden quiz-options"></div>
+            
+            <div id="qc-jumble" class="hidden">
+                <p style="font-size:14px; color:#666; margin-bottom:5px;">Ketuk kata di bawah untuk menyusun kalimat di kotak ini:</p>
+                <div id="jumble-answer" class="q-area-box"></div>
+                <div id="jumble-options" class="q-area-box" style="background:transparent; border:none; box-shadow:none; padding:0;"></div>
+                <button class="submit-btn" onclick="checkJumble()">Periksa Jawaban</button>
+            </div>
+
+            <div id="qc-dnd" class="hidden">
+                <p style="font-size:14px; color:#666; margin-bottom:5px;">Pilih opsi di bawah, lalu ketuk garis merah untuk mengisinya.</p>
+                <div id="dnd-statement" class="q-area-box" style="display:block; text-align:left; line-height: 2;"></div>
+                <div id="dnd-options" class="q-area-box" style="background:transparent; border:none; box-shadow:none; padding:0;"></div>
+                <button class="submit-btn" onclick="checkDnD()">Periksa Jawaban</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pesan / Transisi (Game Over / Menang) -->
+    <div id="message-overlay" class="overlay hidden">
+        <h1 id="message-text">Game Over</h1>
+        <button class="btn" id="msg-btn" style="box-shadow: 0 5px 0 #8a0000;">Kembali</button>
+    </div>
+</div>
+
+<script>
+/** * KONFIGURASI DAN VARIABEL GLOBAL */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let gameState = 'login';
+let requestID;
+
+// Variabel Player & Papan Skor
+let currentPlayer = { name: '', school: '' };
+let leaderboardData = JSON.parse(localStorage.getItem('fikih_leaderboard')) || [];
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas(); 
+
+let score = 0;
+let lives = 3;
+let currentLevel = 1;
+let activeQuizObj = null;
+
+const TILE_SIZE = 40;
+const GRAVITY = 0.6;
+const FRICTION = 0.8;
+let camera = { x: 0, y: 0 };
+const keys = { right: false, left: false, jump: false, down: false };
+
+/** * ASSETS LENGKAP (GAMBAR) */
+const assets = { player: new Image(), flag: new Image() };
+assets.player.src = "https://imgur.com/z6sD9iS.png";
+assets.flag.src = "https://imgur.com/nlCH2HZ.png";
+
+/** * SYNTHESIZER AUDIO KHAS MARIO & BGM * */
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function initAudio() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playSound(type) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
+    
+    if (type === 'jump') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.2); osc.start(now); osc.stop(now + 0.2);
+    } else if (type === 'coin') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(987.77, now); osc.frequency.setValueAtTime(1318.51, now + 0.08);
+        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'bump') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+        gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'dead') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, now); osc.frequency.linearRampToValueAtTime(300, now + 0.2);
+        osc.frequency.linearRampToValueAtTime(200, now + 0.4); osc.frequency.linearRampToValueAtTime(100, now + 0.8);
+        gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 1.0); osc.start(now); osc.stop(now + 1.0);
+    } else if (type === 'powerup') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(800, now + 0.1);
+        osc.frequency.linearRampToValueAtTime(500, now + 0.2); osc.frequency.linearRampToValueAtTime(1000, now + 0.3);
+        gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5);
+    } else if (type === 'wrong') {
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(100, now + 0.4);
+        gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now + 0.4); osc.start(now); osc.stop(now + 0.4);
+    }
+}
+
+/** * BGM SEQUENCER (MARIO STYLE) * */
+const marioMelody = [
+    659.25, 0, 659.25, 0, 0, 659.25, 0, 523.25, 659.25, 0, 783.99, 0, 0, 0, 392.00, 0, 0, 0,
+    523.25, 0, 0, 392.00, 0, 0, 329.63, 0, 0, 440.00, 0, 493.88, 0, 466.16, 440.00, 0,
+    392.00, 659.25, 783.99, 880.00, 0, 698.46, 783.99, 0, 659.25, 0, 523.25, 587.33, 493.88, 0, 0, 0
+];
+let bgmEnabled = true;
+let isBgmPlaying = false;
+let nextNoteTime = 0;
+let bgmStep = 0;
+let bgmReqId;
+
+function scheduleBGM() {
+    if (!isBgmPlaying || !audioCtx) return;
+    
+    while (nextNoteTime < audioCtx.currentTime + 0.1) {
+        let freq = marioMelody[bgmStep];
+        if (freq > 0) {
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            gain.gain.setValueAtTime(0.015, nextNoteTime); 
+            gain.gain.setTargetAtTime(0, nextNoteTime + 0.05, 0.015);
+            osc.start(nextNoteTime);
+            osc.stop(nextNoteTime + 0.15);
+        }
+        nextNoteTime += 0.15;
+        bgmStep = (bgmStep + 1) % marioMelody.length;
+    }
+    bgmReqId = requestAnimationFrame(scheduleBGM);
+}
+
+function startBGM() {
+    if (!bgmEnabled) return;
+    initAudio();
+    if (isBgmPlaying) return;
+    isBgmPlaying = true;
+    nextNoteTime = audioCtx.currentTime + 0.1;
+    bgmStep = 0;
+    scheduleBGM();
+}
+
+function stopBGM() {
+    isBgmPlaying = false;
+    cancelAnimationFrame(bgmReqId);
+}
+
+// Tombol Toggle BGM
+document.getElementById('bgm-btn').addEventListener('click', (e) => {
+    bgmEnabled = !bgmEnabled;
+    const btn = e.target;
+    if (bgmEnabled) {
+        btn.innerText = "🎵 BGM: ON";
+        btn.classList.add('active-bgm');
+        if (gameState === 'playing') startBGM();
+    } else {
+        btn.innerText = "🔇 BGM: OFF";
+        btn.classList.remove('active-bgm');
+        btn.style.background = "#e52521";
+        btn.style.color = "white";
+        stopBGM();
+    }
+});
+
+
+/** * DATA MAP (3 LEVEL) */
+const maps = [
+    [
+        "                                                            ",
+        "                                                            ",
+        "                                                            ",
+        "                                                            ",
+        "                                                            ",
+        "                                                            ",
+        "                                     S                      ",
+        "                       B?B                                  ",
+        "          Q                             Q                   ",
+        "                B?Q?B                BBBBBBBB             | ",
+        "                                                          | ",
+        "      B?B                                                 | ",
+        "                                                          | ",
+        "GGGGGGGGGGGG  GGGGGGGGGGGGGG   GGGGGGGGGGGGGGGGGGGGGGGGGGGG "
+    ],
+    [
+        "                                                                ",
+        "                                                                ",
+        "                                                                ",
+        "                                      S                         ",
+        "                            B?B                                 ",
+        "                                              Q                 ",
+        "                  Q                 BBBBBB                      ",
+        "                                                              | ",
+        "          ?                                                   | ",
+        "                BBBBB                                         | ",
+        "                                                              | ",
+        "  B?B                                                         | ",
+        "                                                              | ",
+        "GGGGGGGGGGGG  GGGG     GGGGGGGGGGGG        GGGGGGGGGGGGGGGGGGGG "
+    ],
+    [
+        "                                                                    ",
+        "                                                                    ",
+        "                                          S                         ",
+        "                                BBB                                 ",
+        "                      B?B                                           ",
+        "            Q                             Q                         ",
+        "                                                                  | ",
+        "      B?B                                                         | ",
+        "                                                                  | ",
+        "                                                      BBBBB       | ",
+        "                                                                  | ",
+        "                                                                  | ",
+        "                                                                  | ",
+        "GGGGGGGG    GGGGGG      GGGGGGGG    GGGGGGGG      GGGGGGGGGGGGGGGGGG"
+    ]
+];
+
+let mapTiles = []; let mapWidth = 0; let mapHeight = 0;
+let clouds = []; let particles = []; let items = [];
+
+/** * OBJEK PEMAIN */
+const player = {
+    x: 50, y: 100, 
+    originalHeight: 48, crouchHeight: 24,
+    width: 48, height: 48,
+    vx: 0, vy: 0, speed: 5, jumpPower: 9.5, 
+    grounded: false, facingLeft: false, runFrame: 0, invincibleTimer: 0, finishedLevel: false,
+    isJumping: false, jumpHoldTimer: 0, isCrouching: false, 
+    
+    reset: function() {
+        this.x = 50; this.y = 100; this.vx = 0; this.vy = 0;
+        this.height = this.originalHeight; this.isCrouching = false;
+        this.invincibleTimer = 0; this.finishedLevel = false;
+        this.isJumping = false; this.jumpHoldTimer = 0;
+        camera.x = 0; camera.y = 0;
+    },
+    
+    update: function() {
+        if(this.finishedLevel) return;
+
+        let wantsToCrouch = keys.down && this.grounded;
+        
+        if (wantsToCrouch && !this.isCrouching) {
+            this.isCrouching = true;
+            this.height = this.crouchHeight;
+            this.y += (this.originalHeight - this.crouchHeight);
+        } else if (!keys.down && this.isCrouching) {
+            let canStand = true;
+            const marginX = 8;
+            let leftTile = Math.floor((this.x + marginX) / TILE_SIZE);
+            let rightTile = Math.floor((this.x + this.width - marginX - 1) / TILE_SIZE);
+            let topTile = Math.floor((this.y - (this.originalHeight - this.crouchHeight)) / TILE_SIZE);
+            
+            if (topTile >= 0 && topTile < mapTiles.length) {
+                for (let c = leftTile; c <= rightTile; c++) {
+                    if (c >= 0 && c < mapWidth && mapTiles[topTile][c] && mapTiles[topTile][c].type !== 0 && mapTiles[topTile][c].type !== 6) {
+                        canStand = false; 
+                    }
+                }
+            }
+            if (canStand) {
+                this.isCrouching = false;
+                this.height = this.originalHeight;
+                this.y -= (this.originalHeight - this.crouchHeight);
+            }
+        }
+
+        let currentMaxSpeed = this.isCrouching ? this.speed * 0.4 : this.speed;
+
+        if (keys.right) { this.vx += 0.25; this.facingLeft = false; } 
+        else if (keys.left) { this.vx -= 0.25; this.facingLeft = true; }
+        
+        if (this.vx > currentMaxSpeed) this.vx -= 0.15; 
+        if (this.vx < -currentMaxSpeed) this.vx += 0.15;
+        
+        if (this.vx > this.speed) this.vx = this.speed;
+        if (this.vx < -this.speed) this.vx = -this.speed;
+        
+        if (!keys.left && !keys.right) { 
+            this.vx *= FRICTION; 
+            if (Math.abs(this.vx) < 0.1) this.vx = 0; 
+        }
+
+        if (keys.jump && this.grounded && !this.isJumping) {
+            let speedRatio = Math.abs(this.vx) / this.speed; 
+            let momentumBonus = Math.pow(speedRatio, 2) * 5.5; 
+            let baseJump = this.isCrouching ? this.jumpPower * 0.8 : this.jumpPower;
+
+            this.vy = -(baseJump + momentumBonus);
+            this.grounded = false; 
+            this.isJumping = true;
+            this.jumpHoldTimer = 12; 
+            
+            playSound('jump');
+            if (speedRatio > 0.8 && !this.isCrouching) spawnParticles(this.x + this.width/2, this.y + this.height, '#fff');
+        }
+
+        if (keys.jump && this.isJumping && this.jumpHoldTimer > 0) {
+            this.vy -= 0.25; 
+            this.jumpHoldTimer--;
+        }
+        if (!keys.jump) { this.isJumping = false; this.jumpHoldTimer = 0; }
+
+        this.vy += GRAVITY;
+        this.x += this.vx; checkCollisions(true); 
+        this.y += this.vy; this.grounded = false; checkCollisions(false); 
+
+        if (this.grounded) {
+            if (!this.isCrouching && Math.abs(this.vx) > 0.5) {
+                this.runFrame += Math.abs(this.vx) * 0.05; 
+                if (Math.abs(this.vx) > this.speed * 0.85 && Math.random() > 0.7) {
+                    particles.push({ color: '#fff', x: this.x + this.width/2, y: this.y + this.height, vx: -this.vx * 0.5, vy: -1 - Math.random(), life: 15 });
+                }
+            } else if (this.isCrouching && Math.abs(this.vx) > currentMaxSpeed && Math.random() > 0.5) {
+                particles.push({ color: '#ddd', x: this.x + this.width/2, y: this.y + this.height, vx: -this.vx * 0.3, vy: -0.5 - Math.random(), life: 12 });
+            }
+        } else {
+            this.runFrame = 0;
+        }
+
+        if (this.invincibleTimer > 0) this.invincibleTimer -= 1/60;
+
+        let targetCamX = this.x - canvas.width / 2.5;
+        if (targetCamX < 0) targetCamX = 0;
+        if (targetCamX > mapWidth * TILE_SIZE - canvas.width) targetCamX = mapWidth * TILE_SIZE - canvas.width;
+        camera.x += (targetCamX - camera.x) * 0.1;
+
+        let targetCamY = this.y - canvas.height / 1.5; 
+        if (targetCamY < 0) targetCamY = 0;
+        if (targetCamY > mapHeight - canvas.height) targetCamY = mapHeight - canvas.height;
+        if (canvas.height > mapHeight) targetCamY = -(canvas.height - mapHeight) / 1.5;
+        camera.y += (targetCamY - camera.y) * 0.1;
+
+        if (this.y > mapHeight + 100) handleDeath();
+
+        if (this.x > (mapWidth - 3) * TILE_SIZE && !this.finishedLevel) {
+            this.finishedLevel = true; this.vx = 0; handleLevelComplete();
+        }
+    },
+
+    draw: function(ctx) {
+        if (!assets.player.complete || assets.player.naturalWidth === 0) {
+            ctx.fillStyle = this.invincibleTimer > 0 ? (Math.random() > 0.5 ? '#fff' : '#f00') : '#e52521';
+            ctx.fillRect(this.x - camera.x, this.y - camera.y, this.width, this.height);
+            return;
+        }
+
+        ctx.save();
+        ctx.translate(this.x - camera.x + this.width / 2, this.y - camera.y + this.height / 2);
+        if (this.invincibleTimer > 0) {
+            ctx.globalAlpha = Math.sin(Date.now() / 50) * 0.5 + 0.5; ctx.filter = `hue-rotate(${Date.now() % 360}deg)`;
+        }
+        if (this.facingLeft) ctx.scale(-1, 1);
+
+        let tiltAngle = 0; let scaleY = 1;
+        if (this.grounded && Math.abs(this.vx) > 0.5 && !this.isCrouching) {
+            tiltAngle = Math.sin(this.runFrame) * 0.25; scaleY = 1 - Math.abs(Math.sin(this.runFrame * 2)) * 0.08;
+            if (Math.abs(this.vx) > this.speed * 0.8) tiltAngle += (this.facingLeft ? -0.15 : 0.15);
+            ctx.rotate(tiltAngle); ctx.scale(1, scaleY); ctx.translate(0, (1 - scaleY) * this.height / 2); 
+        } else if (!this.grounded && !this.isCrouching) {
+            tiltAngle = this.facingLeft ? 0.1 : -0.1; ctx.rotate(tiltAngle);
+        }
+
+        ctx.drawImage(assets.player, -this.width / 2, -this.height / 2, this.width, this.height);
+        ctx.restore();
+    }
+};
+
+function initLevel() {
+    let currentMapData = maps[currentLevel - 1]; 
+    mapTiles = []; mapWidth = currentMapData[0].length; mapHeight = currentMapData.length * TILE_SIZE;
+    
+    for (let row = 0; row < currentMapData.length; row++) {
+        let tileRow = [];
+        for (let col = 0; col < mapWidth; col++) {
+            let char = currentMapData[row][col];
+            let type = 0;
+            if (char === 'G') type = 1; else if (char === 'B') type = 2; else if (char === '?') type = 3; 
+            else if (char === 'Q') type = 4; else if (char === 'S') type = 5; else if (char === '|') type = 6;
+            tileRow.push({ type: type, hit: false, bumpY: 0 });
+        }
+        mapTiles.push(tileRow);
+    }
+
+    clouds = [];
+    for(let i=0; i<20; i++) {
+        clouds.push({ x: Math.random() * (mapWidth * TILE_SIZE), y: Math.random() * (mapHeight / 1.5), size: 30 + Math.random() * 50, speed: 0.2 + Math.random() * 0.5 });
+    }
+
+    items = []; particles = []; player.reset();
+    document.getElementById('ui-level').innerText = currentLevel;
+}
+
+function checkCollisions(isX) {
+    const marginX = 8; 
+    let leftTile = Math.floor((player.x + marginX) / TILE_SIZE);
+    let rightTile = Math.floor((player.x + player.width - marginX - 1) / TILE_SIZE);
+    let topTile = Math.floor(player.y / TILE_SIZE);
+    let bottomTile = Math.floor((player.y + player.height - 1) / TILE_SIZE);
+
+    if (player.x < 0) { player.x = 0; player.vx = 0; }
+
+    for (let r = topTile; r <= bottomTile; r++) {
+        for (let c = leftTile; c <= rightTile; c++) {
+            if (r >= 0 && r < mapTiles.length && c >= 0 && c < mapWidth) {
+                let tile = mapTiles[r][c];
+                if (tile.type >= 1 && tile.type <= 5 || tile.type === 9) { 
+                    if (isX) {
+                        if (player.vx > 0) player.x = c * TILE_SIZE - player.width + marginX;
+                        else if (player.vx < 0) player.x = (c + 1) * TILE_SIZE - marginX;
+                        player.vx = 0;
+                    } else {
+                        if (player.vy > 0) {
+                            player.y = r * TILE_SIZE - player.height; player.grounded = true; player.vy = 0;
+                        } else if (player.vy < 0) {
+                            player.y = (r + 1) * TILE_SIZE; player.vy = 0; hitBlock(r, c, tile);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+function hitBlock(r, c, tile) {
+    if (tile.hit || tile.type === 1 || tile.type === 6) { if(tile.type === 2) playSound('bump'); return; }
+    tile.bumpY = -10; setTimeout(() => { tile.bumpY = 0; }, 100);
+
+    if (tile.type === 3) { 
+        playSound('coin'); tile.type = 9; tile.hit = true; addScore(10);
+        spawnFloatingText("+10", c * TILE_SIZE, r * TILE_SIZE); spawnItem('coin', c * TILE_SIZE, r * TILE_SIZE);
+    } else if (tile.type === 4) { 
+        playSound('bump'); tile.type = 9; tile.hit = true; triggerQuiz();
+    } else if (tile.type === 5) { 
+        playSound('powerup'); tile.type = 9; tile.hit = true; spawnItem('star', c * TILE_SIZE, r * TILE_SIZE - TILE_SIZE);
+    } else if (tile.type === 2) { 
+        playSound('bump');
+        if(player.invincibleTimer > 0) { tile.type = 0; spawnParticles(c * TILE_SIZE + TILE_SIZE/2, r * TILE_SIZE + TILE_SIZE/2); }
+    }
+}
+
+function spawnItem(type, x, y) { items.push({ type: type, x: x + 10, y: y, vy: -8, vx: (type === 'star') ? 2 : 0, life: 0 }); }
+function spawnFloatingText(text, x, y) { particles.push({ text: text, x: x + 10, y: y, vy: -2, life: 60 }); }
+function spawnParticles(x, y, color) { 
+    for(let i=0; i<8; i++) 
+        particles.push({ color: color || '#d13a00', x: x, y: y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10 - 5, life: 30 }); 
+}
+
+function updateItemsAndParticles() {
+    for (let i = items.length - 1; i >= 0; i--) {
+        let it = items[i];
+        if(it.type === 'coin') {
+            it.y += it.vy; it.vy += 0.5; it.life++; if(it.life > 20) items.splice(i, 1);
+        } else if (it.type === 'star') {
+            it.x += it.vx; it.y += it.vy; it.vy += GRAVITY;
+            let tileY = Math.floor((it.y + 20) / TILE_SIZE), tileX = Math.floor(it.x / TILE_SIZE);
+            if(tileY < mapTiles.length && tileX < mapWidth && mapTiles[tileY][tileX] && mapTiles[tileY][tileX].type >= 1 && mapTiles[tileY][tileX].type <= 9) {
+                it.y = tileY * TILE_SIZE - 20; it.vy = -6; 
+            }
+            if (Math.abs(player.x - it.x) < 30 && Math.abs(player.y - it.y) < 30) {
+                player.invincibleTimer = 10; playSound('powerup'); addScore(50);
+                spawnFloatingText("KEBAL!", player.x, player.y - 20); items.splice(i, 1);
+            }
+            if(it.y > mapHeight + 100) items.splice(i, 1);
+        }
+    }
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i]; p.x += p.vx || 0; p.y += p.vy; p.life--; if (p.life <= 0) particles.splice(i, 1);
+    }
+}
+
+/** * DATA SOAL DIPERLUAS * */
+const quizPools = {
+    1: [ 
+        { type: 'pg', q: "Saat berpuasa kita tidak boleh makan dari waktu...", opts: ["Subuh hingga Magrib", "Pagi hingga Malam"], a: 0 },
+        { type: 'pg', q: "Puasa pada bulan Ramadan hukumnya...", opts: ["Sunnah", "Wajib"], a: 1 }
+    ],
+    2: [ 
+        { type: 'jumble', q: "Susun kata berikut menjadi kalimat benar", words: ["Puasa", "itu", "wajib"], a: "Puasa itu wajib" },
+        { type: 'jumble', q: "Susun kata berikut", words: ["Sahur", "sebelum", "subuh"], a: "Sahur sebelum subuh" }
+    ],
+    3: [ 
+        { type: 'dnd', q: "Isi titik di bawah dengan tepat", statement: "Bulan puasa disebut bulan [SLOT].", opts: ["Ramadan", "Syawal", "Muharram"], a: ["Ramadan"] },
+        { type: 'dnd', q: "Isi titik di bawah dengan tepat", statement: "Makan di waktu dini hari sebelum puasa disebut [SLOT].", opts: ["Buka", "Sahur", "Imsak"], a: ["Sahur"] }
+    ]
+};
+
+function triggerQuiz() {
+    gameState = 'paused'; stopBGM(); 
+    keys.left = false; keys.right = false; keys.jump = false; keys.down = false;
+    
+    const pool = quizPools[currentLevel];
+    activeQuizObj = pool[Math.floor(Math.random() * pool.length)]; 
+    
+    document.getElementById('qz-lvl-text').innerText = currentLevel;
+    document.getElementById('quiz-question').innerText = activeQuizObj.q;
+    
+    document.getElementById('qc-pg').classList.add('hidden');
+    document.getElementById('qc-jumble').classList.add('hidden');
+    document.getElementById('qc-dnd').classList.add('hidden');
+
+    if (activeQuizObj.type === 'pg') {
+        document.getElementById('qc-pg').classList.remove('hidden');
+        const optsDiv = document.getElementById('qc-pg'); 
+        optsDiv.innerHTML = '';
+        if (activeQuizObj.opts) {
+            activeQuizObj.opts.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'q-btn'; btn.innerText = optText;
+                btn.onclick = () => finishQuizEvaluation(index === activeQuizObj.a);
+                optsDiv.appendChild(btn);
+            });
+        }
+    } else if (activeQuizObj.type === 'jumble') {
+        document.getElementById('qc-jumble').classList.remove('hidden');
+        setupJumbleQuiz();
+    } else if (activeQuizObj.type === 'dnd') {
+        document.getElementById('qc-dnd').classList.remove('hidden');
+        setupDnDQuiz();
+    }
+    
+    document.getElementById('quiz-modal').classList.remove('hidden');
+}
+
+function setupJumbleQuiz() {
+    const ansBox = document.getElementById('jumble-answer');
+    const optBox = document.getElementById('jumble-options');
+    ansBox.innerHTML = ''; optBox.innerHTML = '';
+    
+    let shuffled = [...activeQuizObj.words].sort(() => Math.random() - 0.5);
+    shuffled.forEach(word => {
+        let chip = document.createElement('div');
+        chip.className = 'word-chip'; chip.innerText = word;
+        chip.onclick = () => {
+            if (chip.parentElement === optBox) {
+                ansBox.appendChild(chip);
+            } else {
+                optBox.appendChild(chip);
+            }
+        };
+        optBox.appendChild(chip);
+    });
+}
+
+function checkJumble() {
+    const ansBox = document.getElementById('jumble-answer');
+    let userAns = Array.from(ansBox.children).map(c => c.innerText).join(' ');
+    finishQuizEvaluation(userAns === activeQuizObj.a);
+}
+
+let dndSelectedOpt = null;
+function setupDnDQuiz() {
+    const statementBox = document.getElementById('dnd-statement');
+    const optBox = document.getElementById('dnd-options');
+    
+    statementBox.innerHTML = activeQuizObj.statement.replace('[SLOT]', '<span class="dnd-slot" id="dnd-slot-0" onclick="fillSlot(this)">___</span>');
+    optBox.innerHTML = '';
+    dndSelectedOpt = null;
+    
+    activeQuizObj.opts.forEach(opt => {
+        let chip = document.createElement('div');
+        chip.className = 'dnd-opt-chip'; chip.innerText = opt;
+        chip.onclick = () => {
+            document.querySelectorAll('.dnd-opt-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            dndSelectedOpt = opt;
+        };
+        optBox.appendChild(chip);
+    });
+}
+
+window.fillSlot = function(slotEl) {
+    if (dndSelectedOpt) {
+        slotEl.innerText = dndSelectedOpt;
+        slotEl.style.color = '#333';
+        slotEl.style.borderBottomColor = '#4caf50';
+    }
+};
+
+function checkDnD() {
+    let slotEl = document.getElementById('dnd-slot-0');
+    if(!slotEl) return;
+    let userAns = slotEl.innerText;
+    finishQuizEvaluation(userAns === activeQuizObj.a[0]);
+}
+
+function finishQuizEvaluation(isCorrect) {
+    document.getElementById('quiz-modal').classList.add('hidden');
+    if (isCorrect) { 
+        playSound('coin'); addScore(100); spawnFloatingText("BENAR! +100", player.x, player.y - 20); 
+    } else { 
+        playSound('wrong'); spawnFloatingText("SALAH!", player.x, player.y - 20); handleDeath(true); 
+    }
+    
+    if (gameState !== 'gameover' && gameState !== 'level_complete' && gameState !== 'win') { 
+        gameState = 'playing'; 
+        startBGM(); 
+    }
+}
+
+// === SISTEM PAPAN SKOR ===
+function saveScoreToLeaderboard() {
+    if (score > 0 && currentPlayer.name) {
+        leaderboardData.push({
+            name: currentPlayer.name,
+            school: currentPlayer.school,
+            score: score
+        });
+        // Urutkan berdasarkan skor tertinggi
+        leaderboardData.sort((a, b) => b.score - a.score);
+        // Simpan hanya top 10 untuk efisiensi penyimpanan browser
+        if(leaderboardData.length > 10) leaderboardData = leaderboardData.slice(0, 10);
+        
+        localStorage.setItem('fikih_leaderboard', JSON.stringify(leaderboardData));
+    }
+}
+
+function updateLeaderboardUI() {
+    // Reset Data
+    for(let i=1; i<=3; i++) {
+        document.getElementById(`name-${i}`).innerText = "-";
+        document.getElementById(`school-${i}`).innerText = "-";
+        document.getElementById(`score-${i}`).innerText = "0";
+    }
+    document.getElementById('lb-other-list').innerHTML = '';
+
+    if (leaderboardData.length === 0) return;
+
+    // Isi Podium Top 3
+    for(let i=0; i<Math.min(3, leaderboardData.length); i++) {
+        let rank = i+1;
+        document.getElementById(`name-${rank}`).innerText = leaderboardData[i].name;
+        document.getElementById(`school-${rank}`).innerText = leaderboardData[i].school;
+        document.getElementById(`score-${rank}`).innerText = leaderboardData[i].score;
+    }
+
+    // Isi sisa pemain (Rank 4+)
+    let listContainer = document.getElementById('lb-other-list');
+    for(let i=3; i<leaderboardData.length; i++) {
+        let item = document.createElement('div');
+        item.className = 'lb-item';
+        item.innerHTML = `
+            <span class="lb-rank">#${i+1}</span>
+            <span class="lb-name">${leaderboardData[i].name} (${leaderboardData[i].school})</span>
+            <span class="lb-pts">${leaderboardData[i].score} Poin</span>
+        `;
+        listContainer.appendChild(item);
+    }
+}
+
+function handleDeath(fromQuiz = false) {
+    playSound('dead'); lives--; updateHUD(); stopBGM();
+    if (lives <= 0) {
+        saveScoreToLeaderboard(); // Simpan skor saat Game Over
+        gameState = 'gameover'; showOverlay('message-overlay');
+        document.getElementById('message-text').innerText = "GAME OVER";
+        document.getElementById('message-text').style.color = "#e52521";
+        document.getElementById('msg-btn').innerText = "Kembali ke Menu Utama";
+        document.getElementById('msg-btn').onclick = () => {
+            currentLevel = 1; score = 0; lives = 3; initLevel();
+            document.getElementById('message-overlay').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('touch-controls').classList.add('hidden');
+            showOverlay('main-menu');
+        };
+    } else {
+        if (!fromQuiz) { 
+            gameState = 'paused'; 
+            setTimeout(() => { 
+                player.reset(); 
+                gameState = 'playing'; 
+                startBGM();
+            }, 1000); 
+        }
+    }
+}
+
+function handleLevelComplete() {
+    playSound('powerup'); stopBGM();
+    if(currentLevel < 3) {
+        gameState = 'level_complete'; showOverlay('message-overlay');
+        document.getElementById('message-text').innerText = `Level ${currentLevel} Selesai!`;
+        document.getElementById('message-text').style.color = "#4caf50";
+        document.getElementById('msg-btn').innerText = `Lanjut Level ${currentLevel + 1}`;
+        document.getElementById('msg-btn').onclick = () => {
+            currentLevel++; initLevel();
+            document.getElementById('message-overlay').classList.add('hidden');
+            gameState = 'playing'; startBGM();
+        };
+    } else {
+        saveScoreToLeaderboard(); // Simpan skor saat Menang
+        gameState = 'win'; showOverlay('message-overlay');
+        document.getElementById('message-text').innerText = "Selamat!\nKamu Menamatkan Game!";
+        document.getElementById('message-text').style.color = "#fbd000";
+        document.getElementById('msg-btn').innerText = "Kembali ke Menu Utama";
+        document.getElementById('msg-btn').onclick = () => {
+            currentLevel = 1; score = 0; lives = 3; initLevel();
+            document.getElementById('message-overlay').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('touch-controls').classList.add('hidden');
+            showOverlay('main-menu');
+        };
+    }
+}
+
+function addScore(pts) { score += pts; updateHUD(); }
+function updateHUD() {
+    document.getElementById('ui-score').innerText = score;
+    document.getElementById('ui-lives').innerText = lives;
+    document.getElementById('ui-level').innerText = currentLevel;
+}
+
+function drawLevel() {
+    ctx.fillStyle = '#5c94fc'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    let deepGroundY = mapHeight - camera.y;
+    if (deepGroundY < canvas.height) {
+        ctx.fillStyle = '#8d6e63'; ctx.fillRect(0, deepGroundY, canvas.width, canvas.height - deepGroundY);
+    }
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    clouds.forEach(c => {
+        let cx = (c.x - camera.x * 0.2) % (mapWidth * TILE_SIZE);
+        if(cx < -c.size) cx += mapWidth * TILE_SIZE + c.size;
+        let cy = c.y - camera.y * 0.1; 
+        
+        ctx.beginPath(); ctx.arc(cx, cy, c.size, 0, Math.PI * 2);
+        ctx.arc(cx + c.size*0.5, cy - c.size*0.3, c.size*0.8, 0, Math.PI * 2);
+        ctx.arc(cx + c.size*1.2, cy, c.size*0.9, 0, Math.PI * 2); ctx.fill();
+        c.x += c.speed; 
+    });
+
+    for (let r = 0; r < mapTiles.length; r++) {
+        for (let c = 0; c < mapWidth; c++) {
+            let tile = mapTiles[r][c];
+            if (tile.type === 0) continue;
+
+            let x = c * TILE_SIZE - camera.x; let y = r * TILE_SIZE + tile.bumpY - camera.y;
+            if (x < -TILE_SIZE || x > canvas.width + TILE_SIZE || y < -TILE_SIZE || y > canvas.height + TILE_SIZE) continue;
+
+            if (tile.type === 1) { 
+                ctx.fillStyle = '#4caf50'; ctx.fillRect(x, y, TILE_SIZE, 8);
+                ctx.fillStyle = '#8d6e63'; ctx.fillRect(x, y + 8, TILE_SIZE, TILE_SIZE - 8);
+                ctx.fillStyle = '#5d4037'; ctx.fillRect(x + 5, y + 15, 5, 5); ctx.fillRect(x + 25, y + 25, 5, 5);
+            } else if (tile.type === 2) { 
+                ctx.fillStyle = '#d13a00'; ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath();
+                ctx.moveTo(x, y + TILE_SIZE/2); ctx.lineTo(x + TILE_SIZE, y + TILE_SIZE/2);
+                ctx.moveTo(x + TILE_SIZE/2, y); ctx.lineTo(x + TILE_SIZE/2, y + TILE_SIZE/2);
+                ctx.moveTo(x + TILE_SIZE/4, y + TILE_SIZE/2); ctx.lineTo(x + TILE_SIZE/4, y + TILE_SIZE);
+                ctx.moveTo(x + TILE_SIZE*0.75, y + TILE_SIZE/2); ctx.lineTo(x + TILE_SIZE*0.75, y + TILE_SIZE);
+                ctx.stroke(); ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+            } else if (tile.type >= 3 && tile.type <= 5) { 
+                ctx.fillStyle = (Math.floor(Date.now() / 200) % 2 === 0) ? '#fbd000' : '#e6a100'; ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#000'; ctx.font = "bold 24px 'Fredoka One'"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                ctx.fillText("?", x + TILE_SIZE/2, y + TILE_SIZE/2); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+                if(tile.type === 4) { ctx.fillStyle='red'; ctx.fillRect(x+2,y+2,6,6); }
+                if(tile.type === 5) { ctx.fillStyle='white'; ctx.fillRect(x+2,y+2,6,6); }
+            } else if (tile.type === 9) { 
+                ctx.fillStyle = '#795548'; ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#3e2723'; ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE); ctx.fillStyle = '#3e2723';
+                ctx.fillRect(x+4,y+4,3,3); ctx.fillRect(x+TILE_SIZE-7,y+4,3,3); ctx.fillRect(x+4,y+TILE_SIZE-7,3,3); ctx.fillRect(x+TILE_SIZE-7,y+TILE_SIZE-7,3,3);
+            } else if (tile.type === 6) { 
+                ctx.fillStyle = '#fff'; ctx.fillRect(x + TILE_SIZE/2 - 4, y, 8, TILE_SIZE); ctx.fillStyle = '#fbd000'; 
+                if(r === 9) { 
+                    ctx.beginPath(); ctx.arc(x + TILE_SIZE/2, y, 10, 0, Math.PI*2); ctx.fill();
+                    if(assets.flag.complete) ctx.drawImage(assets.flag, x + TILE_SIZE/2, y, 40, 40);
+                }
+            }
+        }
+    }
+
+    items.forEach(it => {
+        let x = it.x - camera.x; let y = it.y - camera.y;
+        if(it.type === 'coin') {
+            let width = Math.abs(Math.sin(it.life * 0.2)) * 20;
+            ctx.fillStyle = '#fbd000'; ctx.beginPath(); ctx.ellipse(x + 10, y + 10, width/2, 12, 0, 0, Math.PI*2);
+            ctx.fill(); ctx.strokeStyle = '#fff'; ctx.stroke();
+        } else if (it.type === 'star') {
+            ctx.fillStyle = (Math.floor(Date.now() / 100) % 2 === 0) ? '#fbd000' : '#fff';
+            ctx.beginPath(); ctx.arc(x+10, y+10, 12, 0, Math.PI*2); ctx.fill();
+        }
+    });
+
+    particles.forEach(p => {
+        if (p.text) {
+            ctx.fillStyle = '#fff'; ctx.font = "bold 20px 'Fredoka One'"; ctx.textAlign = "center"; ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+            ctx.strokeText(p.text, p.x - camera.x, p.y - camera.y); ctx.fillText(p.text, p.x - camera.x, p.y - camera.y);
+        } else {
+            ctx.fillStyle = p.color || '#fff'; ctx.fillRect(p.x - camera.x, p.y - camera.y, 6, 6);
+        }
+    });
+}
+
+function gameLoop() {
+    if (gameState === 'playing') {
+        player.update(); updateItemsAndParticles();
+        ctx.clearRect(0, 0, canvas.width, canvas.height); drawLevel(); player.draw(ctx);
+    } else if (gameState === 'paused' || gameState === 'gameover' || gameState === 'win' || gameState === 'level_complete') {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); drawLevel(); if(gameState !== 'gameover') player.draw(ctx);
+    }
+    requestID = requestAnimationFrame(gameLoop);
+}
+
+function showOverlay(id) {
+    document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+
+// ==== TOMBOL EVENT LISTENER ====
+document.getElementById('login-submit-btn').addEventListener('click', () => {
+    let inputName = document.getElementById('player-name').value.trim();
+    let inputSchool = document.getElementById('player-school').value.trim();
+    let errText = document.getElementById('login-error');
+
+    if(inputName === "" || inputSchool === "") {
+        errText.style.display = "block";
+    } else {
+        errText.style.display = "none";
+        currentPlayer.name = inputName;
+        currentPlayer.school = inputSchool;
+        document.getElementById('welcome-name').innerText = currentPlayer.name;
+        showOverlay('main-menu');
+    }
+});
+
+document.getElementById('leaderboard-btn').addEventListener('click', () => {
+    updateLeaderboardUI();
+    showOverlay('leaderboard-menu');
+});
+
+document.getElementById('close-lb-btn').addEventListener('click', () => {
+    showOverlay('main-menu');
+});
+
+document.getElementById('start-btn').addEventListener('click', () => {
+    initAudio(); currentLevel = 1; score = 0; lives = 3; updateHUD(); initLevel();
+    document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+    document.getElementById('hud').classList.remove('hidden');
+    document.getElementById('touch-controls').classList.remove('hidden');
+    gameState = 'playing'; startBGM(); if (!requestID) requestAnimationFrame(gameLoop);
+});
+
+document.getElementById('menu-btn').addEventListener('click', () => {
+    gameState = 'menu'; stopBGM(); document.getElementById('hud').classList.add('hidden');
+    document.getElementById('touch-controls').classList.add('hidden'); showOverlay('main-menu');
+});
+
+document.getElementById('fs-btn').addEventListener('click', () => {
+    if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => {}); } 
+    else { if (document.exitFullscreen) document.exitFullscreen(); }
+});
+
+// Kontrol Keyboard
+window.addEventListener('keydown', (e) => {
+    if (gameState !== 'playing') return;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') keys.jump = true;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = true; 
+});
+window.addEventListener('keyup', (e) => {
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') keys.jump = false;
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false; 
+});
+
+// Kontrol Sentuh
+const bindTouch = (id, keyName) => {
+    const el = document.getElementById(id);
+    const startAction = (e) => { e.preventDefault(); if(gameState === 'playing') { keys[keyName] = true; el.classList.add('active'); } };
+    const endAction = (e) => { e.preventDefault(); keys[keyName] = false; el.classList.remove('active'); };
+    el.addEventListener('touchstart', startAction, {passive: false}); el.addEventListener('touchend', endAction); el.addEventListener('touchcancel', endAction);
+    el.addEventListener('mousedown', startAction); el.addEventListener('mouseup', endAction); el.addEventListener('mouseleave', endAction); 
+};
+bindTouch('t-left', 'left'); 
+bindTouch('t-right', 'right'); 
+bindTouch('t-jump', 'jump');
+bindTouch('t-down', 'down');
+
+ctx.fillStyle = '#5c94fc'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+</script>
+</body>
+</html>
